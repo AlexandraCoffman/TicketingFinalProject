@@ -30,8 +30,8 @@ def process_payment():
     event_id = data.get('event_id')
     amount = data.get('amount')
 
-    # Simulating event ticket validation (This should integrate with EventManager)
-    # Assuming the ticket price is already validated in frontend/backend
+    #integrate with event manager
+
     transaction = Transaction(user_id=user_id, event_id=event_id, amount=amount)
     db.session.add(transaction)
     db.session.commit()
