@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome, {{ user.username}}!</title>
+</head>
+<body>
+    <h1>
+        {% if user_type == '1' %}
+            Welcome, Customer {{ user.username }}!
+            <h2>My Bookings</h2>
+            <ul>
+                <h3>Change</h3>
+                <h3>Cancel</h3>
+                <button><a href="{{ url_for('index') }}">Home</a></button>
+            </ul>
+            <h2>Support Requests</h2>
+        {% elif user_type == '2' %}
+            Welcome, Operator {{ user.username }}!
+            <h2>All Bookings</h2>
+            <ul>
+                <h3>Change</h3>
+                <h3>Cancel</h3>
+            </ul>
+            <h2>Support Requests</h2>
+        {% elif user_type == '3' %}
+            Welcome, Organizer {{ user.username }}!
+            <h2>All Bookings</h2>
+            <ul>
+                <h3>Add</h3>
+                <h3>Change</h3>
+                <h3>Cancel</h3>
+            </ul>
+            <h2>Support Requests</h2>
+        {% else %}
+            Welcome, {{ user.username }}!
+        {% endif %}
+    </h1>    
+</body>
+</html>

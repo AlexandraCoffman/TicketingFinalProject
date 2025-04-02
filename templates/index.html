@@ -1,17 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Login Authentication</title>
+    <title>HarmonyTickets</title>
 </head>
 <body>
-    <h1>Main Page</h1>
-    {% if user.is_authenticated %}
-        <a href="{{url_for('logout')}}">Logout</a>
+    <h1>HarmonyTickets</h1>
+    <p>Welcome to HarmonyTickets! We provide a platform for you to book tickets for various events.</p>
+    <h2>Available Events</h2>
+    <!-- Display events and their related information -->
+    {% if events %}
+        <ul>
+            {% for event in events %}
+                    <strong>{{ event.name }}</strong><br>
+                    {% if event.name == 'Summer Concert' %}
+                        <img src = "{{ url_for('static', filename='images/summer_concert.jpg') }}" width="300" alt="Summer Concert"><br>
+                    {% elif event.name == 'Jazz Night' %}
+                        <img src="{{ url_for('static', filename='images/jazz_concert.jpg') }}" width="300" alt="Jazz Night">
+                    {% endif %} 
+                        <p>Date: {{ event.date }}</p>
+                        <p>Venue: {{ event.venue }}</p>
+                        <p>Remaining Seats: {{ event.available_seats }}</p>
+                        {% if user.is_authenticated and user.user_class == '1' %}
+                            <form action="{{ url_for('add_booking') }}" method="post">
+                                <button type="submit">Book Now</button>
+                            </form>
+                            <br>
+                            <hr>
+                        {% else %}
+                            <p><a href="{{ url_for('login') }}">Login</a> to book tickets.</p>
+                        {% endif %}
+                    </div>
+            {% endfor %}
     {% else %}
-        <a href="{{url_for('login')}}">Login</a>
-        <a href="{{url_for('register')}}">Register</a>
+        <p>No events available at the moment.</p>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+        <a href="{{ url_for('profile') }}">Go to Profile</a> |
+        <a href="{{ url_for('logout') }}">Logout</a>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a> |
+        <a href="{{ url_for('register') }}">Register</a>
     {% endif %}
 </body>
 </html>

@@ -1,24 +1,36 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import csv
+import requests
+import os
 
 # Initalize the flask, csv file, and login manager
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret_key' # Allows for the login manager to work
+app.config['SECRET_KEY'] = 'key' # Allows for the login manager to work and clear cookies so user is logged out upon inital load of the website
 csv_file = 'database.csv'
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 @app.route('/')
 def index():
-    return render_template('index.html', user=current_user)
+    events = []
+    try:
+        response = requests.get('http://localhost:5004/events', timeout=2)
+        if response.status_code == 200:
+            events = response.json()
+    except requests.exceptions.RequestException:
+        flash("Could not load events. Please try again later.", "danger")
+
+    return render_template('index.html', user=current_user, events=events)
+
 
 # User class with id (class), username, and password
 class User(UserMixin):
-    def __init__(self, user_id, username, password):
-        self.id = user_id
+    def __init__(self, user_class, username, password):
+        self.id = username
         self.username = username
         self.password = password
+        self.user_class = user_class
 # Needed for Flask-Login to work
 @login_manager.user_loader
 def load_user(user_id):
@@ -56,9 +68,9 @@ def login():
         for user in users:
             if user.username == username and user.password == password:
                 login_user(user) # If they do, log them in
-                return redirect(url_for('index'))
+                return redirect(url_for('profile'))
         # Otherwise, try again
-        return "Invalid credentials. Please try again.", 401
+        flash("Invalid username or password. Please try again.", "danger")
 
     return render_template('login.html')
 # Function that registers a new user to the CSV file
@@ -83,6 +95,22 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+# Function that display the user profile of a specific user and their functionalities
+@app.route('/profile')
+@login_required
+def profile():
+    user_id = current_user.username;
+    user_type = current_user.user_class;
+    bookings = []
+    support_requests = []
+    events = [] 
+    if user_type == '1': # Customer Profile Page
+        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class)
+    elif user_type == '2': # Operator Profile Page
+        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class)
+    elif user_type == '3': # Organizer Profile Page
+        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class) 
 
 if __name__ == '__main__':
     app.run(debug=True)
