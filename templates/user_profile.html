@@ -33,22 +33,84 @@
                 <button><a href="{{ url_for('index') }}">Home</a></button>
             </ul>
             <h2>Support Requests</h2>
-        {% elif user_type == '2' %}
+            {% elif user_type == '2' %}
             Welcome, Operator {{ user.username }}!
-            <h2>All Bookings</h2>
-            <ul>
-                <h3>Change</h3>
-                <h3>Cancel</h3>
-            </ul>
+            <h2>All Events</h2>
+            {% if organizer_events %}
+                <ul>
+                    {% for event in organizer_events %}
+                        <li>
+                            <strong>{{ event.name }}</strong><br>
+                            Date: {{ event.date }}<br>
+                            Venue: {{ event.venue }}<br>
+                            Remaining Seats: {{ event.available_seats }}
+                            <form action="{{ url_for('cancel_event', event_id=event.id) }}" method="POST">
+                                <button type="submit">Cancel Event</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>You haven't created any events yet.</p>
+            {% endif %}
+            <h2>All Customer Bookings</h2>
+            {% if all_bookings %}
+                <ul>
+                    {% for booking in all_bookings %}
+                            <strong>User ID:</strong> {{ booking.user_id }}<br>
+                            <strong>Event:</strong> {{ booking.event_name }}<br>
+                            <strong>Status:</strong> {{ booking.status }}<br>
+                            <strong>Tickets: </strong>
+                                {% for type, quantity in booking.ticket_summary.items() %}
+                                    {{ type.title() }} x{{ quantity }}
+                                {% endfor %}
+                            <form action="{{ url_for('cancel_user_booking', booking_id=booking.booking_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this user\'s booking?');">
+                                <button type="submit">Cancel User Booking</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No customer bookings found.</p>
+            {% endif %}
+            <button><a href="{{ url_for('index') }}">Home</a></button>    
             <h2>Support Requests</h2>
         {% elif user_type == '3' %}
             Welcome, Organizer {{ user.username }}!
+            <h2>My Events</h2>
+            {% if organizer_events %}
+                <ul>
+                    {% for event in organizer_events %}
+                        <li>
+                            <strong>{{ event.name }}</strong><br>
+                            Date: {{ event.date }}<br>
+                            Venue: {{ event.venue }}<br>
+                            Remaining Seats: {{ event.available_seats }}
+                            <form action="{{ url_for('cancel_event', event_id=event.id) }}" method="POST">
+                                <button type="submit">Cancel Event</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>You haven't created any events yet.</p>
+            {% endif %}
             <h2>All Bookings</h2>
             <ul>
-                <h3>Add</h3>
-                <h3>Change</h3>
-                <h3>Cancel</h3>
+                <h2>Add a New Event</h2>
+                <form action="{{ url_for('create_event') }}" method="POST">
+                    <label>Name:</label><br>
+                    <input type="text" name="name" required><br>
+                    <label>Date:</label><br>
+                    <input type="date" name="date" required><br>
+                    <label>Venue:</label><br>
+                    <input type="text" name="venue" required><br>
+                    <label>Available Seats:</label><br>
+                    <input type="number" name="seats" required><br><br>
+                    <button type="submit">Create Event</button>
+                </form>
             </ul>
+            <button><a href="{{ url_for('index') }}">Home</a></button>
             <h2>Support Requests</h2>
         {% else %}
             Welcome, {{ user.username }}!

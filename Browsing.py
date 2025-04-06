@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -26,7 +26,21 @@ def view_events():
         'venue': e.venue,
         'available_seats': e.available_seats
     } for e in events])
-
+@app.route('/create_event', methods=['POST'])
+# Function for creating an event
+def create_event():
+    data = request.json
+    new_event = Event(name=data['name'],date=data['date'],venue=data['venue'],available_seats=data['available_seats'])
+    db.session.add(new_event)
+    db.session.commit()
+    return jsonify({"message": "Event created"}), 201
+@app.route('/cancel_event/<int:event_id>', methods=['POST'])
+# Function for cancelling an event
+def cancel_event(event_id):
+    event = Event.query.get(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    return jsonify({'message': 'Event cancelled successfully'}), 200
 @app.route('/events/<int:event_id>/seats', methods=['GET'])
 def view_available_seats(event_id):
     event = Event.query.get(event_id)

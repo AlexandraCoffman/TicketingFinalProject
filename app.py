@@ -98,7 +98,7 @@ def logout():
     return redirect(url_for('index'))
 
 # Function that display the user profile of a specific user and their functionalities
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     user_id = current_user.username;
@@ -124,10 +124,44 @@ def profile():
             # Create the booking made list
             booking_made.append({"booking_id": booking["booking_id"],"event_id": booking["event_id"], "event_name": event_name, "status": booking["status"], "ticket_summary": ticket_summary,})
         return render_template('user_profile.html', user=current_user, user_type=current_user.user_class, bookings=booking_made)
-    elif user_type == '2': # Operator Profile Page
-        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class)
-    elif user_type == '3': # Organizer Profile Page
-        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class) 
+    elif user_type == '2':  # Operator Profile Page
+        response = requests.get('http://localhost:5004/events')
+        organizer_events = response.json()
+        # Grab all the current bookings
+        all_bookings_raw = requests.get("http://localhost:5003/all_bookings").json()
+        all_booking_made = []
+        # Then get the events from the event manager
+        for booking in all_bookings_raw:
+            event_name = next((e['name'] for e in organizer_events if str(e['id']) == str(booking['event_id'])), None)
+            ticket_summary = {}
+            for ticket_type in booking['tickets']:
+                ticket_summary[ticket_type] = ticket_summary.get(ticket_type, 0) + 1
+
+            all_booking_made.append({"booking_id": booking["booking_id"],"user_id": booking["user_id"],"event_id": booking["event_id"],"event_name": event_name,"status": booking["status"],"ticket_summary": ticket_summary})
+        # Create an event as a organizer
+        if request.method == 'POST':
+            name = request.form['name']
+            date = request.form['date']
+            venue = request.form['venue']
+            seats = request.form['seats']
+            event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
+            requests.post("http://localhost:5004/create_event", json=event_payload)
+        return render_template('user_profile.html', user=current_user, user_type=user_type, organizer_events=organizer_events, all_bookings=all_booking_made)
+    elif user_type == '3':
+        response = requests.get('http://localhost:5004/events')
+        organizer_events = response.json()
+
+        if request.method == 'POST':
+            name = request.form['name']
+            date = request.form['date']
+            venue = request.form['venue']
+            seats = request.form['seats']
+
+            event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
+
+            response = requests.post("http://localhost:5004/create_event", json=event_payload)
+        return render_template('user_profile.html', user=current_user, user_type=user_type,organizer_events=organizer_events)
+    return render_template('user_profile.html', user=current_user, user_type=user_type, organizer_events=organizer_events)
 # Function that handles Stripe Payment process and displays whether payment was sucessesful or not
 @app.route('/pay', methods=['GET', 'POST'])
 @login_required
@@ -143,7 +177,6 @@ def pay():
         if str(event.get('id')) == str(event_id):
             event_name = event.get('name')
             break
-
     # Create the Stripe Session Based on the Information Passed
     if request.method == 'POST':
         # TO HANDLE SEAT SELECTION AND TYPES OF SEATING: EDIT THIS LOGIC
@@ -188,6 +221,29 @@ def pay():
 @app.route('/cancel_booking/<booking_id>', methods=['POST'])
 @login_required
 def cancel_booking(booking_id):
+    requests.post(f'http://localhost:5003/cancel_booking/{booking_id}')
+    return redirect(url_for('profile'))
+# Function that is used for operators & organizers to create events
+@app.route('/create_event', methods=['POST'])
+@login_required
+def create_event():
+    name = request.form['name']
+    date = request.form['date']
+    venue = request.form['venue']
+    seats = request.form['seats']
+    event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
+    requests.post("http://localhost:5004/create_event", json=event_payload)
+    return redirect(url_for('profile'))
+# Function that is used for operators & organizers to cancel events
+@app.route('/cancel_event/<event_id>', methods=['POST'])
+@login_required
+def cancel_event(event_id):
+    requests.post(f'http://localhost:5004/cancel_event/{event_id}')
+    return redirect(url_for('profile'))
+# Function for operator to cancel user bookings
+@app.route('/cancel_user_booking/<booking_id>', methods=['POST'])
+@login_required
+def cancel_user_booking(booking_id):
     requests.post(f'http://localhost:5003/cancel_booking/{booking_id}')
     return redirect(url_for('profile'))
 

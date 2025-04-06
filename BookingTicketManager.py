@@ -57,6 +57,11 @@ def book_tickets():
         "booking_id": booking.id,
         "ticket_count": data['quantity']
     }), 201
+# Function for Operator Class to View All User Bookings
+@app.route('/all_bookings', methods=['GET'])
+def all_bookings():
+    bookings = Booking.query.all()
+    return jsonify([{"booking_id": b.id,"user_id": b.user_id, "event_id": b.event_id,"status": b.status,"tickets": [t.type for t in Ticket.query.filter_by(booking_id=b.id).all()]} for b in bookings])
 
 @app.route('/cancel_booking/<booking_id>', methods=['POST'])
 def cancel_booking(booking_id):
