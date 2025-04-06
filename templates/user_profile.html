@@ -11,8 +11,25 @@
             Welcome, Customer {{ user.username }}!
             <h2>My Bookings</h2>
             <ul>
-                <h3>Change</h3>
-                <h3>Cancel</h3>
+                {% if bookings %}
+                    {% for booking in bookings %}
+                        <li>
+                            <strong>{{ booking.event_name }}</strong><br>
+                            Status: {{ booking.status }}<br>
+                            {% for type, quantity in booking.ticket_summary.items() %}
+                                {{ type.title() }} x{{ quantity }}<br>
+                            {% endfor %}
+                        </li>
+                        <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="POST" style="display:inline;">
+                            <button type="submit">Cancel</button>
+                        </form>
+                                              
+                    {% endfor %}
+                
+                {% else %}
+                    <li>No bookings yet.</li>
+                {% endif %}
+                <br><br>
                 <button><a href="{{ url_for('index') }}">Home</a></button>
             </ul>
             <h2>Support Requests</h2>

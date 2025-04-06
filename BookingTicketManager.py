@@ -39,6 +39,7 @@ def book_tickets():
         event_id=data['event_id']
     )
     db.session.add(booking)
+    db.session.flush()
 
     # Create tickets (handles UML's "type of tickets")
     for _ in range(data['quantity']):

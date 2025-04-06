@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Screen</title>
+</head>
+<body>
+    {% if success %}
+        <h2>Payment Successful!</h2>
+        <p>Thank you for buying a ticket to event {{ event_id }}!</p>
+        <a href="/">Back to Home</a>
+    {% elif cancel %}
+        <h2>Payment Cancelled</h2>
+        <p>You cancelled the payment for event {{ event_id }}.</p>
+        <a href="/">Try Again</a>
+    {% else %}
+        <h2>Payment Checkout: </h2>
+        <h3>{{ event_name }}</h3>
+        <form action="{{ url_for('pay', event_id=event_id) }}" method="POST">
+            <label for="seat_type">Choose a seat type:</label>
+            <select name="seat_type" id="seat_type">
+                <option value="Regular">Regular</option>
+                <option value="VIP">VIP</option>
+                <option value="Disabled">Disabled</option>
+            </select>
+        
+            <input type="hidden" name="seat_number" value="A1"> <!-- or generate dynamically -->
+            
+            <button type="submit">Pay with Stripe</button>
+        </form>
+        
+        
+    {% endif %}
+</body>
+</html>
