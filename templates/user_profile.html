@@ -32,7 +32,35 @@
                 <br><br>
                 <button><a href="{{ url_for('index') }}">Home</a></button>
             </ul>
-            <h2>Support Requests</h2>
+            <h2>Submit a Support Request</h2>
+            <form action="{{ url_for('submit_request') }}" method="POST">
+                <label for="request_type">Request Type:</label><br>
+                <select name="request_type" required>
+                    <option value="refund">Refund</option>
+                    <option value="exchange">Exchange</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="general">General Question</option>
+                </select><br>
+                <label for="description">Description:</label><br>
+                <textarea name="description" rows="4" cols="50" required></textarea><br>
+
+                <button type="submit">Submit Request</button>
+            </form>
+
+            {% if support_requests %}
+                <h3>My Requests</h3>
+                <ul>
+                    {% for r in support_requests %}
+                        <li>
+                            <strong>{{ r.type.title() }}</strong> - Status: {{ r.status.title() }}<br>
+                            <strong>Submitted:</strong> {{ r.created_at }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>You have no support requests.</p>
+            {% endif %}
+
             {% elif user_type == '2' %}
             Welcome, Operator {{ user.username }}!
             <h2>All Events</h2>
@@ -74,7 +102,33 @@
                 <p>No customer bookings found.</p>
             {% endif %}
             <button><a href="{{ url_for('index') }}">Home</a></button>    
-            <h2>Support Requests</h2>
+            <h2>All Support Requests (from Customers and Organizers)</h2>
+            {% if support_requests %}
+                <ul>
+                    {% for r in support_requests %}
+                    <li>
+                        <strong>User:</strong> {{ r.user_id }}<br>
+                        <strong>Type:</strong> {{ r.type.title() }}<br>
+                        <strong>Status:</strong> {{ r.status.title() }}<br>
+                        <strong>Description:</strong> {{ r.description }}<br>
+                        <strong>Submitted:</strong> {{ r.created_at }}<br>
+                        
+                        {% if r.status != 'resolved' %}
+                            <form action="{{ url_for('resolve_request', request_id=r.id) }}" method="POST" style="display:inline;">
+                                <button type="submit">Mark as Resolved</button>
+                            </form>
+                        {% else %}
+                            <em>This request is resolved.</em>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+
+
+                </ul>
+            {% else %}
+                <p>No support requests found.</p>
+            {% endif %}
+
         {% elif user_type == '3' %}
             Welcome, Organizer {{ user.username }}!
             <h2>My Events</h2>
@@ -111,7 +165,35 @@
                 </form>
             </ul>
             <button><a href="{{ url_for('index') }}">Home</a></button>
-            <h2>Support Requests</h2>
+            <h2>Submit a Support Request</h2>
+            <form action="{{ url_for('submit_request') }}" method="POST">
+                <label for="request_type">Request Type:</label><br>
+                <select name="request_type" required>
+                    <option value="refund">Refund</option>
+                    <option value="exchange">Exchange</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="general">General Question</option>
+                </select><br>
+                <label for="description">Description:</label><br>
+                <textarea name="description" rows="4" cols="50" required></textarea><br>
+
+                <button type="submit">Submit Request</button>
+            </form>
+
+            {% if support_requests %}
+                <h3>My Requests</h3>
+                <ul>
+                    {% for r in support_requests %}
+                        <li>
+                            <strong>{{ r.type.title() }}</strong> - Status: {{ r.status.title() }}<br>
+                            <strong>Submitted:</strong> {{ r.created_at }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>You have no support requests.</p>
+            {% endif %}
+
         {% else %}
             Welcome, {{ user.username }}!
         {% endif %}

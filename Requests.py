@@ -61,9 +61,22 @@ def get_user_requests(user_id):
     return jsonify([{
         'id': r.id,
         'type': r.request_type,
+        'description': r.description,
         'status': r.status,
         'created_at': r.created_at.isoformat()
     } for r in requests])
+# Function that handles the request to view all requests for Operator
+@app.route('/requests', methods=['GET'])
+def get_all_requests():
+    requests_list = CustomerRequest.query.all()
+    return jsonify([{
+        'id': r.id,
+        'user_id': r.user_id,
+        'type': r.request_type,
+        'description': r.description,
+        'status': r.status,
+        'created_at': r.created_at.isoformat()
+    } for r in requests_list])
 
 # Initialize database
 def init_db():

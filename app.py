@@ -103,7 +103,6 @@ def logout():
 def profile():
     user_id = current_user.username;
     user_type = current_user.user_class;
-    bookings = []
     support_requests = []
     events = [] 
     if user_type == '1': # Customer Profile Page
@@ -113,7 +112,8 @@ def profile():
         booking_made = []
         # Get the events from the event manager
         events = requests.get('http://localhost:5004/events').json()
-
+        # Generate the support requests on the customers profile page
+        support_requests = requests.get(f"http://localhost:5005/requests/user/{user_id}").json()
         for booking in bookings_data:
             event_name = next((e['name'] for e in events if str(e['id']) == str(booking['event_id'])), None)
             ticket_summary = {}
@@ -123,7 +123,7 @@ def profile():
                 ticket_summary[ticket_type] = ticket_summary.get(ticket_type, 0) + 1
             # Create the booking made list
             booking_made.append({"booking_id": booking["booking_id"],"event_id": booking["event_id"], "event_name": event_name, "status": booking["status"], "ticket_summary": ticket_summary,})
-        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class, bookings=booking_made)
+        return render_template('user_profile.html', user=current_user, user_type=current_user.user_class, bookings=booking_made, support_requests=support_requests)
     elif user_type == '2':  # Operator Profile Page
         response = requests.get('http://localhost:5004/events')
         organizer_events = response.json()
@@ -146,11 +146,16 @@ def profile():
             seats = request.form['seats']
             event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
             requests.post("http://localhost:5004/create_event", json=event_payload)
-        return render_template('user_profile.html', user=current_user, user_type=user_type, organizer_events=organizer_events, all_bookings=all_booking_made)
+        # Grab all the support requests for the operator profile page
+        support_requests = []
+        support_requests = requests.get("http://localhost:5005/requests").json()
+        return render_template('user_profile.html', user=current_user, user_type=user_type, organizer_events=organizer_events, all_bookings=all_booking_made, support_requests=support_requests)
     elif user_type == '3':
         response = requests.get('http://localhost:5004/events')
         organizer_events = response.json()
-
+        # Generate the support requests on the organizers profile page
+        support_requests = []
+        support_requests = requests.get(f"http://localhost:5005/requests/user/{user_id}").json()
         if request.method == 'POST':
             name = request.form['name']
             date = request.form['date']
@@ -160,7 +165,7 @@ def profile():
             event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
 
             response = requests.post("http://localhost:5004/create_event", json=event_payload)
-        return render_template('user_profile.html', user=current_user, user_type=user_type,organizer_events=organizer_events)
+        return render_template('user_profile.html', user=current_user, user_type=user_type,organizer_events=organizer_events, support_requests=support_requests)
     return render_template('user_profile.html', user=current_user, user_type=user_type, organizer_events=organizer_events)
 # Function that handles Stripe Payment process and displays whether payment was sucessesful or not
 @app.route('/pay', methods=['GET', 'POST'])
@@ -245,6 +250,22 @@ def cancel_event(event_id):
 @login_required
 def cancel_user_booking(booking_id):
     requests.post(f'http://localhost:5003/cancel_booking/{booking_id}')
+    return redirect(url_for('profile'))
+# Function that handles customer and organizer support requests
+@app.route('/submit_request', methods=['POST'])
+@login_required
+def submit_request():
+    user_id = current_user.username
+    request_type = request.form['request_type']
+    description = request.form['description']
+    request_info = {"user_id": user_id,"request_type": request_type,"description": description}
+    requests.post("http://localhost:5005/requests", json=request_info)
+    return redirect(url_for('profile'))
+# Function the operator uses to resolve a users request
+@app.route('/resolve_request/<int:request_id>', methods=['POST'])
+@login_required
+def resolve_request(request_id):
+    requests.put(f"http://localhost:5005/requests/{request_id}",json={"status": "resolved"})
     return redirect(url_for('profile'))
 
 if __name__ == '__main__':
