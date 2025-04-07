@@ -2,47 +2,80 @@
 <html>
 <head>
     <title>HarmonyTickets</title>
+    <style>
+        .event-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+        }
+        .seat-info {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e9e9e9;
+            border-radius: 5px;
+        }
+        .seat-type {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        .btn-book {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>HarmonyTickets</h1>
-    <p>Welcome to HarmonyTickets! We provide a platform for you to book tickets for various events.</p>
-    <h2>Available Events</h2>
-    <!-- Display events and their related information -->
-    {% if events %}
-        <ul>
-            {% for event in events %}
-                    <strong>{{ event.name }}</strong><br>
-                    {% if event.name == 'Summer Concert' %}
-                        <img src = "{{ url_for('static', filename='images/summer_concert.jpg') }}" width="300" alt="Summer Concert"><br>
-                    {% elif event.name == 'Jazz Night' %}
-                        <img src="{{ url_for('static', filename='images/jazz_concert.jpg') }}" width="300" alt="Jazz Night">
-                    {% endif %} 
-                        <p>Date: {{ event.date }}</p>
-                        <p>Venue: {{ event.venue }}</p>
-                        <p>Remaining Seats: {{ event.available_seats }}</p>
-                        <!-- Any userclass can book an event-->
-                        {% if user.is_authenticated %}
-                            <form action="{{ url_for('pay') }}" method="get">
-                                <input type="hidden" name="event_id" value="{{ event.id }}">
-                                <button type="submit">Book Now</button>
-                            </form>
-                            <br>
-                            <hr>
-                        {% else %}
-                            <p><a href="{{ url_for('login') }}">Login</a> to book tickets.</p>
-                        {% endif %}
-                    </div>
-            {% endfor %}
-    {% else %}
-        <p>No events available at the moment.</p>
+<h1>HarmonyTickets</h1>
+<p>Welcome to HarmonyTickets! We provide a platform for you to book tickets for various events.</p>
+<h2>Available Events</h2>
+
+{% if events %}
+{% for event in events %}
+<div class="event-card">
+    <strong>{{ event.name }}</strong><br>
+    {% if event.name == 'Summer Concert' %}
+    <img src="{{ url_for('static', filename='images/summer_concert.jpg') }}" width="300" alt="Summer Concert"><br>
+    {% elif event.name == 'Jazz Night' %}
+    <img src="{{ url_for('static', filename='images/jazz_concert.jpg') }}" width="300" alt="Jazz Night"><br>
     {% endif %}
 
+    <p>Date: {{ event.date }}</p>
+    <p>Venue: {{ event.venue }}</p>
+
+    <div class="seat-info">
+        <h4>Available Seats:</h4>
+        <div><span class="seat-type">Regular:</span> {{ event.regular_seats }} seats (€10 each)</div>
+        <div><span class="seat-type">VIP:</span> {{ event.vip_seats }} seats (€20 each)</div>
+        <div><span class="seat-type">Disabled:</span> {{ event.disabled_seats }} seats (€5 each)</div>
+    </div>
+
     {% if user.is_authenticated %}
-        <a href="{{ url_for('profile') }}">Go to Profile</a> |
-        <a href="{{ url_for('logout') }}">Logout</a>
+    <form action="{{ url_for('pay') }}" method="get">
+        <input type="hidden" name="event_id" value="{{ event.id }}">
+        <button type="submit" class="btn-book">Book Now</button>
+    </form>
     {% else %}
-        <a href="{{ url_for('login') }}">Login</a> |
-        <a href="{{ url_for('register') }}">Register</a>
+    <p><a href="{{ url_for('login') }}">Login</a> to book tickets.</p>
     {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p>No events available at the moment.</p>
+{% endif %}
+
+{% if user.is_authenticated %}
+<a href="{{ url_for('profile') }}">Go to Profile</a> |
+<a href="{{ url_for('logout') }}">Logout</a>
+{% else %}
+<a href="{{ url_for('login') }}">Login</a> |
+<a href="{{ url_for('register') }}">Register</a>
+{% endif %}
 </body>
 </html>

@@ -3,34 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Screen</title>
+    <title>Payment Checkout</title>
+    <style>
+        .payment-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .seat-option {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .btn-pay {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn-pay:hover {
+            background-color: #218838;
+        }
+        .quantity-control {
+            margin: 15px 0;
+        }
+        .max-available {
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
+<div class="payment-container">
     {% if success %}
-        <h2>Payment Successful!</h2>
-        <p>Thank you for buying a ticket to event {{ event_id }}!</p>
-        <a href="/">Back to Home</a>
+    <h2>Payment Successful!</h2>
+    <p>Your tickets for <strong>{{ event_name }}</strong> have been reserved.</p>
+    <a href="{{ url_for('profile') }}">View Bookings</a> |
+    <a href="{{ url_for('index') }}">Back to Events</a>
+
     {% elif cancel %}
-        <h2>Payment Cancelled</h2>
-        <p>You cancelled the payment for event {{ event_id }}.</p>
-        <a href="/">Try Again</a>
+    <h2>Payment Cancelled</h2>
+    <p>Your booking for <strong>{{ event_name }}</strong> was not completed.</p>
+    <a href="{{ url_for('pay', event_id=event_id) }}">Try Again</a> |
+    <a href="{{ url_for('index') }}">Browse Events</a>
+
     {% else %}
-        <h2>Payment Checkout: </h2>
-        <h3>{{ event_name }}</h3>
-        <form action="{{ url_for('pay', event_id=event_id) }}" method="POST">
-            <label for="seat_type">Choose a seat type:</label>
-            <select name="seat_type" id="seat_type">
-                <option value="Regular">Regular</option>
-                <option value="VIP">VIP</option>
-                <option value="Disabled">Disabled</option>
-            </select>
-        
-            <input type="hidden" name="seat_number" value="A1"> <!-- or generate dynamically -->
-            
-            <button type="submit">Pay with Stripe</button>
-        </form>
-        
-        
+    <h2>Book Tickets</h2>
+    <h3>{{ event_name }}</h3>
+
+    <form action="{{ url_for('pay', event_id=event_id) }}" method="POST" id="booking-form">
+        <!-- Seat Type Selection -->
+        <div class="form-group">
+            <h4>Select Seat Type:</h4>
+            {% for seat_type in ['Regular', 'VIP', 'Disabled'] %}
+            {% set available = seat_availability[seat_type.lower()] %}
+            <div class="seat-option">
+                <input type="radio" id="{{ seat_type.lower() }}" name="seat_type" value="{{ seat_type }}"
+                       {% if available <= 0 %}disabled{% endif %}
+                required>
+                <label for="{{ seat_type.lower() }}">
+                    <strong>{{ seat_type }} Seat</strong> -
+                    €{{ 10 if seat_type == 'Regular' else (20 if seat_type == 'VIP' else 5) }}<br>
+                    Available: {{ available }} seats
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Quantity Selection -->
+        <div class="quantity-control">
+            <label for="quantity"><strong>Number of Tickets:</strong></label>
+            <input type="number" id="quantity" name="quantity" min="1" value="1"
+                   max="{{ max_available }}" onchange="validateQuantity()">
+            <span class="max-available">(Max: {{ max_available }})</span>
+        </div>
+
+        <!-- Payment Button -->
+        <button type="submit" class="btn-pay">Proceed to Payment</button>
+    </form>
+
+    <script>
+        function validateQuantity() {
+            const quantityInput = document.getElementById('quantity');
+            const maxAvailable = parseInt(quantityInput.max);
+            if (quantityInput.value > maxAvailable) {
+                quantityInput.value = maxAvailable;
+            }
+            if (quantityInput.value < 1) {
+                quantityInput.value = 1;
+            }
+        }
+    </script>
     {% endif %}
+</div>
 </body>
 </html>

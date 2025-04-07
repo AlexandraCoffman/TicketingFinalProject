@@ -22,6 +22,9 @@ def index():
         response = requests.get('http://localhost:5004/events', timeout=2)
         if response.status_code == 200:
             events = response.json()
+            # Transformez les données pour inclure toutes les informations de sièges
+            for event in events:
+                event['total_seats'] = event.get('regular_seats', 0) + event.get('vip_seats', 0) + event.get('disabled_seats', 0)
     except requests.exceptions.RequestException:
         flash("Could not load events. Please try again later.", "danger")
 
@@ -171,57 +174,116 @@ def profile():
 @app.route('/pay', methods=['GET', 'POST'])
 @login_required
 def pay():
+    """Handle ticket booking and payment processing"""
+    event_id = request.args.get('event_id')
     success = request.args.get('success')
     cancel = request.args.get('cancel')
-    event_id = request.args.get('event_id')
-    event_name = ""
-    # Grab the event name from the event ID
-    response = requests.get('http://localhost:5004/events')
-    # Check if the response is successful
-    for event in response.json():
-        if str(event.get('id')) == str(event_id):
-            event_name = event.get('name')
-            break
-    # Create the Stripe Session Based on the Information Passed
-    if request.method == 'POST':
-        # TO HANDLE SEAT SELECTION AND TYPES OF SEATING: EDIT THIS LOGIC
-        # Moved logic into POST method for displaying seat type for user profile display
-        selected_seat_type = request.form.get('seat_type', 'Regular')
-        selected_seat_number = request.form.get('seat_number', 'N/A')
 
-        session['seat_type'] = selected_seat_type
-        session['seat_number'] = selected_seat_number
-        session['event_id'] = event_id
-        # The price is handled in cents for Stripe, i.e. 1000 = 10.00 EUROS
-        price_cents = 1000
-        if selected_seat_type == "VIP":
-            price_cents = 2000
-        elif selected_seat_type == "Disabled":
-            price_cents = 800
-        # Create the Stripe Checkout Session
+    # Get event details
+    try:
+        event_response = requests.get(f'http://localhost:5004/events/{event_id}')
+        if event_response.status_code != 200:
+            flash("Event not found", "danger")
+            return redirect(url_for('index'))
+        event = event_response.json()
+    except requests.exceptions.RequestException:
+        flash("Service unavailable", "danger")
+        return redirect(url_for('index'))
+
+    event_name = event.get('name', 'Unknown Event')
+    seat_availability = {
+        'regular': event.get('regular_seats', 0),
+        'vip': event.get('vip_seats', 0),
+        'disabled': event.get('disabled_seats', 0)
+    }
+
+    # Handle payment success
+    if success and session.get('event_id'):
+        return handle_payment_success(event_name)
+
+    # Handle payment cancellation
+    if cancel:
+        return render_template('pay.html',
+                               cancel=True,
+                               event_id=event_id,
+                               event_name=event_name)
+
+    # Process booking form
+    if request.method == 'POST':
+        seat_type = request.form.get('seat_type')
+        quantity = int(request.form.get('quantity', 1))
+
+        # Validate seat availability
+        available_seats = seat_availability.get(seat_type.lower(), 0)
+        if quantity > available_seats:
+            flash(f"Only {available_seats} {seat_type} seats available", "warning")
+            return redirect(url_for('pay', event_id=event_id))
+
+        # Create Stripe session
+        return create_stripe_session(event_id, event_name, seat_type, quantity)
+
+    # Show booking form
+    max_available = max(seat_availability.values())
+    return render_template('pay.html',
+                           event_id=event_id,
+                           event_name=event_name,
+                           seat_availability=seat_availability,
+                           max_available=max_available)
+
+def handle_payment_success(event_name):
+    """Finalize booking after successful payment"""
+    try:
+        booking_data = {
+            "user_id": current_user.username,
+            "event_id": session.pop('event_id'),
+            "ticket_type": session.pop('seat_type').lower(),
+            "quantity": session.pop('quantity')
+        }
+        requests.post("http://localhost:5003/book_tickets", json=booking_data)
+        flash("Booking confirmed!", "success")
+    except Exception as e:
+        flash(f"Booking failed: {str(e)}", "danger")
+
+    return render_template('pay.html',
+                           success=True,
+                           event_name=event_name)
+
+def create_stripe_session(event_id, event_name, seat_type, quantity):
+    """Initialize Stripe payment session"""
+    try:
+        # Calculate price based on seat type
+        price_map = {'Regular': 1000, 'VIP': 2000, 'Disabled': 500}
+        unit_price = price_map.get(seat_type, 1000)
+
+        # Store booking info in session
+        session.update({
+            'event_id': event_id,
+            'seat_type': seat_type,
+            'quantity': quantity
+        })
+
+        # Create Stripe Checkout session
         stripe_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            # Use Card Number 4242 4242 4242 4242 for testing
-            line_items=[{'price_data': {'currency': 'eur', 'product_data': {'name': f'{selected_seat_type} Seat for {event_name}','metadata': {'event_id': event_id,'seat_type': selected_seat_type,'seat_number': selected_seat_number}},'unit_amount': price_cents,},'quantity': 1,}],
+            line_items=[{
+                'price_data': {
+                    'currency': 'eur',
+                    'product_data': {
+                        'name': f'{seat_type} Ticket for {event_name}'
+                    },
+                    'unit_amount': unit_price,
+                },
+                'quantity': quantity,
+            }],
             mode='payment',
-            # Handle the success and cancel responses from Stripe, Jinja HTML will display the result
             success_url=url_for('pay', _external=True, success='true', event_id=event_id),
             cancel_url=url_for('pay', _external=True, cancel='true', event_id=event_id),
         )
         return redirect(stripe_session.url, code=303)
-    # If the payment was successful, we will process the booking
-    if success and session.get('event_id'):
-        event_id = session.pop('event_id', None)
-        selected_seat_type = session.pop('seat_type', None)
-        selected_seat_number = session.pop('seat_number', 'N/A')
 
-        booking_payload = {"user_id": current_user.username, "event_id": event_id, "ticket_type": selected_seat_type.lower(), "quantity": 1}
-
-        requests.post("http://localhost:5003/book_tickets", json=booking_payload)
-        # Redirect to profile after booking
-        return redirect(url_for('profile'))
-    # Properly render the response of the payment
-    return render_template('pay.html', success=success, cancel=cancel, event_id=event_id, event_name=event_name)
+    except Exception as e:
+        flash(f"Payment error: {str(e)}", "danger")
+        return redirect(url_for('pay', event_id=event_id))
 # Function used to call from BookingEventManager to cancel a booking
 @app.route('/cancel_booking/<booking_id>', methods=['POST'])
 @login_required
@@ -232,12 +294,28 @@ def cancel_booking(booking_id):
 @app.route('/create_event', methods=['POST'])
 @login_required
 def create_event():
-    name = request.form['name']
-    date = request.form['date']
-    venue = request.form['venue']
-    seats = request.form['seats']
-    event_payload = {"name": name,"date": date,"venue": venue,"available_seats": int(seats)}
-    requests.post("http://localhost:5004/create_event", json=event_payload)
+    if current_user.user_class not in ['2', '3']:  # Only operators and organizers
+        flash("You don't have permission to create events", "danger")
+        return redirect(url_for('profile'))
+
+    event_payload = {
+        "name": request.form['name'],
+        "date": request.form['date'],
+        "venue": request.form['venue'],
+        "regular_seats": request.form['regular_seats'],
+        "vip_seats": request.form['vip_seats'],
+        "disabled_seats": request.form['disabled_seats']
+    }
+
+    try:
+        response = requests.post("http://localhost:5004/create_event", json=event_payload)
+        if response.status_code == 201:
+            flash("Event created successfully!", "success")
+        else:
+            flash(f"Error creating event: {response.text}", "danger")
+    except requests.exceptions.RequestException:
+        flash("Event service unavailable", "danger")
+
     return redirect(url_for('profile'))
 # Function that is used for operators & organizers to cancel events
 @app.route('/cancel_event/<event_id>', methods=['POST'])
