@@ -122,8 +122,10 @@ def profile():
             ticket_summary = {}
             seat_numbers = []
 
-            for ticket_type in booking['tickets']:
+            for ticket in booking['tickets']:
+                ticket_type = ticket['type']
                 ticket_summary[ticket_type] = ticket_summary.get(ticket_type, 0) + 1
+
             # Create the booking made list
             booking_made.append({"booking_id": booking["booking_id"],"event_id": booking["event_id"], "event_name": event_name, "status": booking["status"], "ticket_summary": ticket_summary,})
         return render_template('user_profile.html', user=current_user, user_type=current_user.user_class, bookings=booking_made, support_requests=support_requests)
@@ -137,7 +139,8 @@ def profile():
         for booking in all_bookings_raw:
             event_name = next((e['name'] for e in organizer_events if str(e['id']) == str(booking['event_id'])), None)
             ticket_summary = {}
-            for ticket_type in booking['tickets']:
+            for ticket in booking['tickets']:
+                ticket_type = ticket['type']
                 ticket_summary[ticket_type] = ticket_summary.get(ticket_type, 0) + 1
 
             all_booking_made.append({"booking_id": booking["booking_id"],"user_id": booking["user_id"],"event_id": booking["event_id"],"event_name": event_name,"status": booking["status"],"ticket_summary": ticket_summary})
@@ -306,16 +309,7 @@ def create_event():
         "vip_seats": request.form['vip_seats'],
         "disabled_seats": request.form['disabled_seats']
     }
-
-    try:
-        response = requests.post("http://localhost:5004/create_event", json=event_payload)
-        if response.status_code == 201:
-            flash("Event created successfully!", "success")
-        else:
-            flash(f"Error creating event: {response.text}", "danger")
-    except requests.exceptions.RequestException:
-        flash("Event service unavailable", "danger")
-
+    requests.post("http://localhost:5004/create_event", json=event_payload)
     return redirect(url_for('profile'))
 # Function that is used for operators & organizers to cancel events
 @app.route('/cancel_event/<event_id>', methods=['POST'])

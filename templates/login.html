@@ -13,15 +13,6 @@
         <button type="submit">Login</button><br>
     </form>
     <a href="{{url_for('register')}}">Don't have an account? Sign Up</a>
-    <!-- Display error message of invalid password or username -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            {% if category != 'danger' %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endif %}
-        {% endfor %}
-    {% endwith %}
-
 
 </body>
 </html>
