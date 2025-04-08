@@ -148,28 +148,7 @@
     {% else %}
     <p>No customer bookings found.</p>
     {% endif %}
-    <h2>All Events</h2>
-    {% if organizer_events %}
-    <ul>
-        {% for event in organizer_events %}
-        <li>
-            <strong>{{ event.name }}</strong><br>
-            Date: {{ event.date }}<br>
-            Venue: {{ event.venue }}<br>
-            Seats:
-            Regular ({{ event.regular_seats }}),
-            VIP ({{ event.vip_seats }}),
-            Disabled ({{ event.disabled_seats }})
-            <form action="{{ url_for('cancel_event', event_id=event.id) }}" method="POST">
-                <button type="submit" onclick="return confirm('Are you sure you want to cancel this event?');">Cancel Event</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>No events available.</p>
-    {% endif %}
-
+    
     <button><a href="{{ url_for('index') }}">Home</a></button>
     <h2>All Support Requests</h2>
     {% if support_requests %}
