@@ -4,6 +4,7 @@
 First, you'll need to install and activate your environment with: . .venv/bin/activate'
 Next, install Flask with 'pip install Flask', though you may need to update your version with 'pip install --upgrade pip'
 Then install 'pip install Flask-Login', we'll be using Flask's built-in feature for our user authentication process.
+Then install 'pip install requests'
 Use 'pip install Stripe' for the payment method
 Now open multiple terminals to run 'flask run' for app.py, 'python Browsing.py', 'python BookingTicketManager.py', and 'python Events.py'
 Now you can open the website in port http://127.0.0.1:5000
